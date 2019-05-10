@@ -266,7 +266,7 @@ public class C {
 
 It's silly!
 
-# But what if I want a private getter?
+# But what if I want a private setter?
 
 Rather than writing this:
 
