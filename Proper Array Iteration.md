@@ -1,11 +1,9 @@
-I see a lot of people using very roundabout ways to iterate through arrays. Below I've listed the various bad ways I've seen, explained why they're bad, and suggested improvements. Enjoy!
-
 # `for i in 0...array.count-1 { }`
 
 Why it's bad:
 * If `array` is empty, this will try to form the range `0...(-1)`, which will crash:
 
-    > Fatal error: Can't form Range with upperBound < lowerBound
+	> Fatal error: Can't form Range with upperBound < lowerBound
 * Too easy to forget the `-1`.
 * Doesn't work for sliced collections, where the indices don't start from zero.
 * Doesn't work for collections whose indices aren't `Int`.
@@ -22,7 +20,7 @@ Improvements over the previous:
 Why it's bad:
 
 * Too easy to accidentally type `0...array.count`, causing an off-by-one error (by trying to access `array[array.count]`)
-    * You might think you're immune, but believe me, I've seen tens of StackOverflow questions about this.
+	* You might think you're immune, but believe me, I've seen tens of StackOverflow questions about this.
 * Doesn't work for sliced collections, where the indices don't start from zero.
 * Doesn't work for collections whose indices aren't `Int`.
 
@@ -41,13 +39,13 @@ Improvements over the previous:
 
 # Using indices when you don't need to
 
-Iterating the indexes of an array when you don't need to, just introduces unnecessary complexity. For example:
+Iterating the indexes of an array when you don't need to, just introduces unecessary complexity. For example:
 
 ``` Swift
 let array = ["A", "B", "C" ]
 for i in array.indices {
-    let char = array[i]
-    print(char)
+	let char = array[i]
+	print(char)
 }
 ```
 
@@ -56,7 +54,7 @@ In this example, the indices arne't what's needed. They're only used as a means 
 ``` Swift
 let array = ["A", "B", "C" ]
 for char in array {
-    print(char)
+	print(char)
 }
 ```
 
@@ -66,9 +64,9 @@ However, there are times when you *do* need the index, such as when you want to 
 ``` Swift
 var array = ["A", "B", "C" ]
 for i in array.indices {
-    let char = array[i]
-    print(char)
-    array[i] = " "
+	let char = array[i]
+	print(char)
+	array[i] = " "
 }
 ```
 
@@ -81,9 +79,9 @@ But even this isn't the best way to do it! Instead, use `Sequence.enumerated()`.
 ``` Swift
 var array = ["A", "B", "C" ]
 for (i, char) in array.enumerated() {
-    let char = array[i]
-    print(char)
-    array[i] = " "
+	let char = array[i]
+	print(char)
+	array[i] = " "
 }
 ```
 
@@ -95,7 +93,7 @@ There are 3 ways to correctly iterate a sequence in a `for` loop, depending on w
 It's actually exceptionally rare that you need to iterate over *only* the indices of a collection, and not the associated values. Thus, you'll almost always be using `for element in array { }` or `for (offset, element) in array.enumerated() { }`
 
 
-|                     | Indices not needed  | Indices needed |
+|					 | Indices not needed  | Indices needed |
 |---------------------|---------------------|----------------|
 | Elements not needed | Just don't iterate anything lol | `for i in array.indices { }` |
-| Elements needed     | `for element in array { }`  | `for (offset, element) in array.enumerated() { }` |
+| Elements needed	 | `for element in array { }`  | `for (offset, element) in array.enumerated() { }` |
