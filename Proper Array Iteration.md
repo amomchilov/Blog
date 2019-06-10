@@ -95,7 +95,7 @@ But there are better ways:
 * If you need both the elements and a counter, see [Iterating over the elements, and maintaining a counter](Iterating-over-the-elements,-and-maintaining-a-counter).
 
 
-### `for i in array.indices { }`
+### Best practice: `for i in array.indices { }`
 
 If you really do need this, the best way to do this is with the built in [`Colleciton.indices`](https://developer.apple.com/documentation/swift/collection/1641719-indices) computed property. It's defined on `Collection`, so it's not limited to not just `Array`. Instead it's available to any `Collection`, like `String`, `Set`, `Dictionary`, etc.
 
@@ -117,7 +117,7 @@ Improvements over the "bad ways":
 
 ## Iterating over the elements, and maintaining a counter
 
-### `for (offset, char) in array.enumerated() { }`
+### Best practice: `for (offset, char) in array.enumerated() { }`
 
 Use [`Sequence.enumerated()`](https://developer.apple.com/documentation/swift/sequence/1641222-enumerated). It iterates the elements of a sequence, while maintaining a counter for you and providing it to you via its iterator. This counter is an offset from `0`, but ***it is not an index***. It can only be used as an index for collections with zero-based integer indices. That is not the case for many collections, such as `ArraySlice`, `String`, `Set`, etc.
 
@@ -131,7 +131,7 @@ for (offset, char) in array.enumerated() {
 
 ## Iterating over the indices and the elements
 
-### `for (index, char) in zip(array.indices, array) { }`
+### Best practice: `for (index, char) in zip(array.indices, array) { }`
 
 Unlike `Sequence.enumerated()`, this techinque provides you with indices that are guarenteed to be valid for use with the collection.
 
@@ -146,7 +146,7 @@ for (index, char) in zip(array.indices, array) {
 
 ## Iterating over the elements
 
-### `for element in array { }`
+### Best practice: `for element in array { }`
 Keep it simple:
 
 ``` Swift
