@@ -17,9 +17,10 @@ public class C {
 ```
 
 
-This pattern\* *is completely pointless* in Swift, and I'll explain why, but firstly we need to take a short detour through Java land. Why Java? Because most of the people I run into who write Swift like this have some sort of Java background, either
-1. because it was taught in their computer sceince courses, or
-2. because they're coming over to iOS development, from Android
+This pattern\* *is completely pointless* in Swift, and I'll explain why, but firstly we need to take a short detour through Java land. Why Java? Because most of the people I run into who write Swift like this have some sort of Java background, it's because either:
+
+1. it was taught in their computer sceince courses, or
+2. they're coming over to iOS development, from Android
 
 ## What's the point of getters and setters?
 
@@ -205,7 +206,7 @@ public struct WeatherReport {
 	public let cityName: String
 
 	public let temperatureC: Double
-	public let temperatureF: Double {
+	public var temperatureF: Double {
 		get { return temperatureC * 9/5 + 32 }
 		set { temperatureC = (newValue - 32) * 5/9 }
 	}
