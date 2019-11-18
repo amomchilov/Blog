@@ -3,7 +3,7 @@
 
 ## First, why `filter(_:)` is so nice
 
-There's an inverse relationship between generality and clarity. APIs that have a single, narrow purpose are very easy to understand from a quick glance. `filter` is one such example. As soon as you see a call to `map`, and without even looking at the sequence it's called on or the closure it's passed, you can instantly know a few things:
+There's an inverse relationship between generality and clarity. APIs that have a single, narrow purpose are very easy to understand from a quick glance. `filter` is one such example. As soon as you see a call to `filter`, and without even looking at the sequence it's called on or the closure it's passed, you can instantly know a few things:
 
 1. You know that `input.count <= output.count`
 2. You know that the input and output elements will have the same type
@@ -15,7 +15,7 @@ I suggest that before you use `reduce`, you take a careful look what other APIs 
 
 ## `reduce` is really general.
 
-Generality is good, because it means that `reduce` can be useful in a broad range of cases. While this utility is convenient, it needs to be weighed against the competeing factor, which is potential the loss of readability. Consider that reduce can be used to implement:
+Generality is good, because it means that `reduce` can be useful in a broad range of cases. While this utility is convenient, it needs to be weighed against the competing factor, which is potential the loss of readability. Consider that reduce can be used to implement:
 
 1. `count`
 2. `isEmpty`
@@ -122,7 +122,7 @@ print(Array(1...5).shittyPrefix(3))
 
 `reduce` is pretty much exactly as powerful as `forEach`. The `reduce`'s accumulator can be used to maintain state, but you can do that with any old variable, just by capturing in the closure you pass to `forEach`. Neither of these APIs is able to skip iterations or bail early.
 
-In fact, Ruby's `Enumerable` module (their equivalent of equivalent of Swift's `Sequence` protocol) only requires that you implement an `each` method (equivalent of `forEach`), which they use to implement all other APIs within `Enumerable`. However, this is far from perfect, because it means that even simple operations like `count`, `first`, `last`, `isEmpty`, etc. become `O(n)`. So often times, they'll be implemented seperately to take advantage of the implementation details of the particular sequence's implementation, for faster performance.
+In fact, Ruby's `Enumerable` module (their equivalent of Swift's `Sequence` protocol) only requires that you implement an `each` method (equivalent of `forEach`), which they use to implement all other APIs within `Enumerable`. However, this is far from perfect, because it means that even simple operations like `count`, `first`, `last`, `isEmpty`, etc. become `O(n)`. So often times, they'll be implemented seperately to take advantage of the implementation details of the particular sequence's implementation, for faster performance.
 
 ## Comparison to `for`
 
