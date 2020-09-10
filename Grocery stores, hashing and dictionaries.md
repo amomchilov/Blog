@@ -377,67 +377,6 @@ Many of the errors and questions around misbehaving sets and dictionaries is cau
 
 ## A mismatch between `Equatable` and `Hashable`
 
-The implementation of `Equatable.==` derives some `Bool` return value based on some set of properties of `self`. Similarly, the implementation of `Hashable.hash(into:)` mixes a set of properties of `self` into the provided `Hasher`. There are three possible relationships between these two sets, as outline below. Either they're equivalent, the second is a subset of the first, or the first is a subset of the second:
-
-1. All relevant properties are considered in both the implementation of `Equatable.==` and `Hashable.hash(into:)`.
-	* ✅ This is correct. The hash value is representative of the values being searched for, so the correct bucket will be selected. During the linear searching phase, a matching key is correctly identified, and its associated value is returned.
-2. All relevant properties are considered in the implementation of `Equatable.==`, but some were not considered by the implementation of `Hashable.hash(into:)`.
-	* ❌ This is incorrect. The hash value is not representative of the values being searched for. The dictionary will try to search for your key/value pair in the wrong bucket. It *might* happen to work if both the truly correct hash value and the actual hash value happen to map to the same bucket. In that case, the selected bucket is accidentally correct. The correct equatable implementation means that if the key is in that bucket, it'll be correct found.
-	* Net result: looking up a known-present key indeterminately fails to find a match
-3. All relevant properties are considered in the implementation of `Hashable.hash(into:)`, but some were not considered by the implementation of `Equatable.==`.
-	* ❌ This is incorrect. The hash value is representative of he values being searched for, so the correct bucket will be selected. However, during the linear searching phase, a non-matching key might be accidentally selected instead of the true match.
-	* Net result: looking up a known-present key indeterminately happens to return a value for another key (one which has the same hash value and is equal according to `==`, but might be distinct)
-
-Here are examples of the for cases:
-
-``` Swift
-// A Point struct that correctly implements the `Equatable` and `Hashable` protocols.
-// The set of properties used in the implementation of `==` is equivalent to
-// the set of properties used in the implementation of `hash(into:)`
-struct PointV1: Equatable {
-	let (x, y): (Int, Int)
-	
-	static func == (lhs: Point, rhs: Point) -> Bool {
-		return lhs.x == rhs.x && lhs.y == rhs.y
-	}
-		
-	func hash(into hasher: inout Hasher) {
-		hasher.combine(self.x)
-		hasher.combine(self.y)
-	}
-}
-
-
-// A Point struct that correctly implements the `Equatable` and `Hashable` protocols.
-// The set of properties used in the implementation of `hash(into:)` is a subset of
-// the set of properties used in the implementation of `==`
-struct PointV2: Hashable {
-	let (x, y): (Int, Int)
-	
-	static func == (lhs: Point, rhs: Point) -> Bool {
-		return lhs.x == rhs.x && lhs.y == rhs.y
-	}
-		
-	func hash(into hasher: inout Hasher) {
-		// Wrong hash value: self.y wasn't mixed into the hash
-		hasher.combine(self.x)
-	}
-}
-
-// A Point struct that correctly implements the `Equatable` and `Hashable` protocols.
-// The set of properties used in the implementation of `==` is a subset of
-// the set of properties used in the implementation of `hash(into:)`
-struct PointV3: Hashable {
-	let (x, y): (Int, Int)
-	
-	static func == (lhs: Point, rhs: Point) -> Bool {
-		// False matches: points considered equal even if `y` differs
-		return lhs.x == rhs.x
-	}
-	
-	func hash(into hasher: inout Hasher) {
-		hasher.combine(self.x)
-		hasher.combine(self.y)
-	}
-}
+```
+TODO
 ```
