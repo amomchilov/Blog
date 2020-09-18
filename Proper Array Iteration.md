@@ -54,7 +54,7 @@ Improved: `for i in array.indices { }`
 
 ## Iterating over the indices
 
-This is probably *not* what you need. I can't think of many situations in which you'd be interested in the elements of a collection, but not its elements.
+This is probably *not* what you need. I can't think of many situations in which you'd be interested in the indices of a collection, but not in its elements.
 
 ### Using indices when you don't need to
 
@@ -97,7 +97,7 @@ But there are better ways:
 
 ### Best practice: `for i in array.indices { }`
 
-If you really do need this, the best way to do this is with the built in [`Colleciton.indices`](https://developer.apple.com/documentation/swift/collection/1641719-indices) computed property. It's defined on `Collection`, so it's not limited to not just `Array`. Instead it's available to any `Collection`, like `String`, `Set`, `Dictionary`, etc.
+If you really do need this, the best way to do this is with the built in [`Collection.indices`](https://developer.apple.com/documentation/swift/collection/1641719-indices) computed property. It's defined on `Collection`, so it's not limited to not just `Array`. Instead it's available to any `Collection`, like `String`, `Set`, `Dictionary`, etc.
 
 In the case of `Array`, it simply returns `0..<self.count`. However, other types implement this computed property differently, so that it's always correct. For example, slices start and end at the correct index into their parent container.
 
@@ -133,7 +133,7 @@ for (offset, char) in array.enumerated() {
 
 ### Best practice: `for (index, char) in zip(array.indices, array) { }`
 
-Unlike `Sequence.enumerated()`, this techinque provides you with indices that are guarenteed to be valid for use with the collection.
+Unlike `Sequence.enumerated()`, this technique provides you with indices that are guaranteed to be valid for use with the collection.
 
 ``` Swift
 let array = ["A", "B", "C" ]
