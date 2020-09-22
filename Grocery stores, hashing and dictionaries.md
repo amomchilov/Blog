@@ -377,6 +377,250 @@ Many of the errors and questions around misbehaving sets and dictionaries is cau
 
 ## A mismatch between `Equatable` and `Hashable`
 
+Consider a `Point` struct, with an `x: Int` and `y: Int` field. There are several possible ways the `x` and `y` values can be used to implement `Equatable.==` and `Hashable.hash(into:)`. Here's a table of them, assigning each case a number, which will be elaborated on below
+
+| Case | in `==` | in both  | in `hash(into:)` | Valid? |
+|:----:|:-------:|:--------:|:----------------:|:------:|
+|   1  |         | `x`, `y` |                  |   ✅   |
+|   2  |   `x`   |    `y`   |                  |   ⚠️   |
+|   3  |         |    `x`   |       `y`        |   ❌   |
+|   4  |   `x`   |          |       `y`        |   ❌   |
+|   5  |         |    `x`   |      `foo`       |  ❌❌❌  |
+
+### Case 1 - Correct ✅
+
+All relevant properties are considered in both the implementation of `==` and `hash(into:)`.
+
+This is correct. The hash value is representative of the values being searched for, so the correct bucket will be selected. During the linear searching phase, a matching key is correctly identified, and its associated value is returned.
+
+<details><summary>Example</summary>
+<p>
+
+```swift
+struct PointV1: Hashable {
+	let (x, y): (Int, Int)
+	
+	static func == (lhs: Self, rhs: Self) -> Bool {
+		return lhs.x == rhs.x && lhs.y == rhs.y
+	}
+		
+	func hash(into hasher: inout Hasher) {
+		hasher.combine(self.x)
+		hasher.combine(self.y)
+	}
+}
+
+func hash<T: Hashable>(_ hashable: T) -> Int {
+	var hasher = Hasher()
+	hashable.hash(into: &hasher)
+	return hasher.finalize()
+}
+
+let p1 = PointV1(x:  1, y: 2)
+let p2 = PointV1(x: 99, y: 2)
+
+// The hash values will vary, but will likely be different ✅
+hash(p1) // => 719781228487762341
+hash(p2) // => -6436957106723858766
+p1 == p2 // => false, which is correct ✅
 ```
-TODO
+</p>
+</details>
+
+### Case 2 - Under-hashing ⚠️
+
+All relevant properties are considered in the implementation of `==`, but only a subset of those are also considered in `hash(into:)`.
+
+This is correct, but might be suboptimal. Each property considered in `==` but not in `hash(into:)` can be thought of as a "missed opportunity" to add more "uniqueness" to the hasher. As a result, similar-but-different values might hash the same (where they otherwise might not have, if only `x` was mixed into the hasher), putting them in the same bucket, which necessitates more linear searching than otherwise unnecessary.
+
+Consider the example of `Point(x: 1, y: 2)` and `Point(x: 99, y: 2)`. The hash value of both points would be the same (because it's derived solely for the `y` values, which are the same in this case, both being `2`), but the points are non-equal (`==` returns false, because the `x` values differ). These two points would have colliding hashed, be placed into the same bucket, and require more `==` calls to search for them. If the `x` values were mixed into the hasher, then there's a high likelyhood that the hash values wouldn't collide, and that the points would be placed into different buckets, requiring fewer `==` calls.
+
+There's an unusual case when this might actually be better performing and desirable: if the `x` is really expensive to hash, but really cheap to `==`. In that case, you save yourself the time of hashing `x`, causing more time linear searching, but using the fast `==` implementation. I can't really think of a case when this would happen, but it is *theoretically* possible. Nonetheless, you probably shouldn't do this.
+
+<details><summary>Example</summary>
+<p>
+
+```swift
+struct PointV2: Hashable {
+	let (x, y): (Int, Int)
+	
+	static func == (lhs: Self, rhs: Self) -> Bool {
+		return lhs.x == rhs.x && lhs.y == rhs.y
+	}
+		
+	func hash(into hasher: inout Hasher) {
+		// ⚠️ Missed opportunity: `x` isn't mixed into the hasher.
+		// hasher.combine(self.x) 
+		hasher.combine(self.y)
+	}
+}
+
+func hash<T: Hashable>(_ hashable: T) -> Int {
+	var hasher = Hasher()
+	hashable.hash(into: &hasher)
+	return hasher.finalize()
+}
+
+let p1 = PointV2(x:  1, y: 2)
+let p2 = PointV2(x: 99, y: 2)
+
+// The hash values will vary, but will always collide ⚠️
+hash(p1) // => 1300649407116756548
+hash(p2) // => 1300649407116756548
+p1 == p2 // => false, which is correct ✅
 ```
+</p>
+</details>
+
+
+### Case 3 - False matching ❌
+
+All relevant properties are in the implementation of `hash(into:)`, but only a subset of those are also considered in `==`.
+
+This case is broken, and you should never use it. The hash value is representative of he values being searched for, so the correct bucket will be selected. However, during the linear searching phase, a non-matching key might be accidentally selected instead of the true match.
+
+This case is a bit odd to debug, because sometimes it can behave correctly (it's not deterministic). Imagine a bucket contains `p1` and `p2`, and the dictionary is searching for `p1`:
+
+1. If the bucket happens to be ordered `[p1, p2]`, the first check will be `p1 == p1`, which will be true, causing the dictionary to find `p1` correctly,
+2. ...but if the ordering of the bucket is `[p2, p1]`, then the first check will be `p1 == p2`, which will erroneously be true, causing the dictionary to find `p2` in a search for `p1`!
+
+
+<details><summary>Example</summary>
+<p>
+
+```swift
+struct PointV3: Hashable {
+	let (x, y): (Int, Int)
+	
+	static func == (lhs: Self, rhs: Self) -> Bool {
+		// ❌ False matches: points considered equal even if `y` differs
+		return lhs.x == rhs.x // && lhs.y == rhs.y
+	}
+		
+	func hash(into hasher: inout Hasher) {
+		hasher.combine(self.x) 
+		hasher.combine(self.y)
+	}
+}
+
+func hash<T: Hashable>(_ hashable: T) -> Int {
+	var hasher = Hasher()
+	hashable.hash(into: &hasher)
+	return hasher.finalize()
+}
+
+let p1 = PointV3(x: 1, y: 2)
+let p2 = PointV3(x: 1, y: 99)
+
+// The hash values will vary, but will likely be different ✅
+hash(p1) // => -2102209745080052058
+hash(p2) // => -455190567412857877
+p1 == p2 // => true, which is incorrect ❌
+```
+</p>
+</details>
+
+### Case 4 - Under hashing with false matching ❌
+
+Only one property is in the implementation of `==`, and only one is in the implementation of `hash(into:)`
+
+This is just a combination of cases 2 and 3, with the downsides of both.
+
+* For equal values (both `x`s and `y`s are the same) you'll select the correct bucket.
+* For unequal values (`x`s differ, but `y`s are the same) you'll select the correct bucket.
+* For unequal values (`x`s are the same, but `y`s differ), you'll probably select the wrong bucket (unless there's the hashes happen to map to the same bucket).
+ 
+In all 3 scenarios, you might select the wrong value (because of the broken `==` causing a false match).
+
+<details><summary>Example</summary>
+<p>
+
+```swift
+struct PointV4: Hashable {
+	let (x, y): (Int, Int)
+	
+	static func == (lhs: Self, rhs: Self) -> Bool {
+		// ❌ False matches: points considered equal even if `y` differs
+		return lhs.x == rhs.x // && lhs.y == rhs.y
+	}
+		
+	func hash(into hasher: inout Hasher) {
+		// ⚠️ Missed opportunity: `x` isn't mixed into the hasher.
+		// hasher.combine(self.x) 
+		hasher.combine(self.y)
+	}
+}
+
+func hash<T: Hashable>(_ hashable: T) -> Int {
+	var hasher = Hasher()
+	hashable.hash(into: &hasher)
+	return hasher.finalize()
+}
+
+let p1 = PointV4(x: 1, y:  2)
+let p2 = PointV4(x: 1, y: 99)
+
+// The hash values will vary, but will likely be different ✅
+hash(p1) // => 5985996726589812862
+hash(p2) // => -5014003295822567750
+p1 == p2 // => true, which is incorrect ❌
+```
+</p>
+</details>
+
+
+### Case 5 - Super duper broken ❌❌❌
+
+The hash value depends on a value that is totally unrepresentative of the value being searched for. The `Point` example doesn't fit as nicely (because there's no reason why a `Point` would contain a totally unrelated field `foo`), so I'll present a different example that I've seen in the wild:
+
+#### `HTTPHeaderField` example
+```
+struct HTTPHeaderField: Hashable {
+	let value: String
+
+	static func == (lhs: Self, rhs: Self) -> Bool {
+		// I changed this line to simplify the explanation, the original was
+		// `lhs.value.compare(rhs.value, options: .caseInsensitive) == .orderedSame`
+		lhs.value.lowercased() == rhs.value.lowercased()
+	}
+
+	func hash(into hasher: inout Hasher) {
+		value.hash(into: &hasher)
+	}
+}
+```
+
+The author is trying to model HTTP header fields, which are case insensitive. To be compliant to the HTTP spec, upper/lower/mixed case header fields needed to be treated as identically. This implies the following behaviours:
+
+1. A `Set<HTTPHeaderField>` should only allow one instance of `HTTPHeaderField(value: "a b c")`, regardless of its capitalization
+2. Similarly, a `Dictionary<HTTPHeaderField, V>` should only allow one key-value mapping with key `HTTPHeaderField(value: "a b c")`, regardless of its capitalization,
+3. `HTTPHeaderField(value: "a b c") == HTTPHeaderField(value: "a b c")` should be true, but so should 
+	* `HTTPHeaderField(value: "a b c") == HTTPHeaderField(value: "A b c")` and
+	* `HTTPHeaderField(value: "A B C") == HTTPHeaderField(value: "A b c")`
+
+#### The issue
+
+This is intentional, and desirable. However, there's a critical mistake: the hash value is derived from `value`, leaving the letter casing intact. Consider that `HTTPHeaderField(value: "a b c")` and `HTTPHeaderField(value: "A b c")` will hash differently (again, the usual caveats apply: it's always possible that these hash values collide, or that they ultimately happen to map to the same buckets). A search for `HTTPHeaderField(value: "a b c")` will likely make you end up in a different bucket than `HTTPHeaderField(value: "A b c")`. This has a bunch of symptoms:
+
+* If you're inserting into a dictionary, the differing hash values can allow two different key value pairs, one for ``HTTPHeaderField(value: "a b c"): foo` and another for `HTTPHeaderField(value: "A b c"): bar`. This breaks the requirement that differently-cased http headers are treated identically.
+* If your dictionary happened to contain `HTTPHeaderField(value: "A B C")`, and its bucket maps the same way as the bucket for `HTTPHeaderField(value: "a b c")`, a look up for the value of `HTTPHeaderField(value: "a b c")` might instead find the value for `HTTPHeaderField(value: "A B C")`.
+
+Conceptually, you can think of `value.lowercased()` as a totally different value from `value` (even though it's derived from it, and can happen to be equal, it's usually not), so lets call it `differentValue`. The hash value derives from `value`, but equality checking depends on `differentValue`. This can work correctly when they're equal, but is totally broken when they're not.
+
+### One possible solution
+
+In cases when `==` derives its value from derived values like `differentValue`, you need a `hash(into:)` that also derives its value from `differentValue`. In this case, you can achieve this by hashing `differentValue.hash(into: &hasher)` (a.k.a. `value.lowercased().hash(into: &hasher)`), instead of `value`. Lowercasing is like a form of [canonicalization](https://en.wikipedia.org/wiki/Canonicalization), a process by which all the set of all possible variously cased-values can be reduced 
+into a smaller set of lowercase-only values. There's some caveats around localizations, and which lower-casing algorithm is applied (they can be different between different languages), so it's really not so trivial!
+
+In fact, our beloved built-in `Swift.String` itself employs a canonicalization process! You see, semantically equivalent Unicode strings can be represented differently under the hood. For example `"é"` can be represented in two different ways:
+
+1. As a single code point: `U+00E9`, ["Latin Small Letter E with Acute"](https://www.compart.com/en/unicode/U+00E9), written `"\u{00E9}"` in Swift
+
+2. Or as a combination of two code points:
+
+    | Glyph | Unicode code point | Name                                                                  | Swift string literal   |
+    |:-----:|:------------------:|:---------------------------------------------------------------------:|:----------------------:|
+    |  `e`  |      `U+0065`      | ["Latin Small Letter E"](https://www.compart.com/en/unicode/U+0065)   |  `"e"` or `"\u{00E9}"` |
+    |  `◌́`  |      `U+0065`      | ["Combining Acute Accent"](https://www.compart.com/en/unicode/U+0301) |           `"\u{0301}"` |
+
+Swift wants to treat these two representations equivalently. It would be really strange if two identical looking strings with the same semantics compared as unequal according to `==`. As a result, string equality can't be as simple as `strcmp` from C, doing a blind byte-for-byte comparison of the two strings' underlying buffers. Instead, Swift applies one of the [unicode normalization algorithms](https://en.wikipedia.org/wiki/Unicode_equivalence), so that the Strings are massaged into one of the Unicode canonical forms. Once that's done, semantically equivalent strings will have identical byte representations, which can be used to reliably hash and equate strings.
