@@ -1,3 +1,7 @@
+# MOVED ➡️
+
+This content has been moved to [my site](http://momchilov.ca/2020/07/01/dates_arent_strings.html).
+
 # Dates aren't Strings.
 
 At least seveal times a week, I see StackOverflow questions related to the user struggling to do some simple date processing on strings. The solution is always the same, and it's always simple: don't store dates as strings.

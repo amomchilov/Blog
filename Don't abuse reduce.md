@@ -1,3 +1,7 @@
+# MOVED ➡️
+
+This content has been moved to [my site](http://momchilov.ca/2019/10/24/dont_abuse_reduce.html).
+
 # Don't abuse `reduce(_:)`
 
 

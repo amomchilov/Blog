@@ -1,3 +1,7 @@
+# MOVED ➡️
+
+This content has been moved to [my site](http://momchilov.ca/2020/06/30/array_iteration.html).
+
 # The bad ways
 
 Avoid all of these. If you get linked to one of these sections, read the section, follow the chain of "slightly improved" variants until you end up at the best technique. That way, you can see what every incremental improvement does, and what makes the "best technique" so good.

@@ -1,3 +1,7 @@
+# MOVED ➡️
+
+This content has been moved to [my site](http://momchilov.ca/2019/04/22/stop_writing_getters_and_setters_in_swift.html).
+
 # Stop writing getters and setters in Swift
 
 I see this time and time again, and it's about time I write an article in one place to consolidate all my thoughts. If you find yourself writing code that looks like this, listen up:
